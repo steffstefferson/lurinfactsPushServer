@@ -1,0 +1,23 @@
+{
+  "name": "lurinspushserver",
+  "version": "1.0.0",
+  "description": "lurins pushserver",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha **/spec/*.js --inspect-brk",
+    "babel": "babel logic -d functions"
+  },
+  "author": "stef chaeser",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.3",
+    "express": "^4.15.3",
+    "firebase-admin": "^5.0.0",
+    "mocha": "^3.4.2",
+    "web-push": "^3.2.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-regenerator": "^6.26.0"
+  }
+}

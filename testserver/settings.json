@@ -1,0 +1,10 @@
+{
+    "serviceAccount": {
+		...
+    },
+    "vapidKeys": {
+		...
+    },
+    "isPushMocked" : false,
+    "databaseUrl" : "..."
+}
