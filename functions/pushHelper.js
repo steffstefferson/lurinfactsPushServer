@@ -10,6 +10,7 @@ module.exports = function (refFirebase, webPush) {
     //if webpush is not given we use a mock library
     const webpushLibary = webPush || webpush_Mock;
     console.log('use webpushLibary mock: '+!webPush);
+
     const pushContent = function (message) {
         message.timestamp = new Date();
         return firebase.getSubscriptionsFromDatabase().then(function (subscriptions) {
@@ -25,6 +26,10 @@ module.exports = function (refFirebase, webPush) {
         });
     };
 
+    const pushContentTo = function (message,reciever) {
+        return triggerPushMsg(reciever, message);
+    };
+
     const triggerPushMsg = function (subscription, dataToSend) {
         return webpushLibary.sendNotification(subscription, JSON.stringify(dataToSend)).then(function () {
             console.log('sendNotification successful for p256dh: ' + subscription.keys.p256dh);
@@ -38,5 +43,5 @@ module.exports = function (refFirebase, webPush) {
         });
     };
 
-    return { pushContent, setVapidDetails: webpushLibary.setVapidDetails };
+    return { pushContent,pushContentTo, setVapidDetails: webpushLibary.setVapidDetails };
 };

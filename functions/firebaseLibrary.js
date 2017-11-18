@@ -1,7 +1,6 @@
 module.exports = function (db) {
 
     const fireBaseRegistrationRef = db.ref("server/pushregistration");
-    const fireBaseMsgRef = db.ref("server/custommessage");
     const fireBasePushStateRef = db.ref("server/pushstate");
     const fireBaseFactsRef = db.ref("facts");
     const fireBaseLocationRef = db.ref("imageMetaData");
@@ -13,8 +12,21 @@ module.exports = function (db) {
     };
 
     const saveSubscriptionToDatabase = function (subscription) {
-        const subscriptionid = subscription.keys.p256dh;
-        return fireBaseRegistrationRef.child(subscriptionid).set(subscription);
+        subscription.registerDate = new Date()+"";
+        var p1 = new Promise(
+            function (resolve, reject) {
+                const subscriptionid = subscription.keys.p256dh;
+                fireBaseRegistrationRef.child(subscriptionid).once('value', function (snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    fireBaseRegistrationRef.child(subscriptionid).set(subscription).then(function () {
+                        resolve(exists);
+                    }).catch(function(err){
+                        reject(err);
+                    })
+                });
+            });
+
+        return p1;
     };
 
     const deleteSubscriptionFromDatabase = function (subscription) {
@@ -38,12 +50,6 @@ module.exports = function (db) {
 
     const updatePushState = function (pushState) {
         return fireBasePushStateRef.set(pushState);
-    };
-
-    const getCustomMesage = function () {
-        return fireBaseMsgRef.once('value').then(function (snapshot) {
-            return snapshot.val();
-        }, errorFn('getCustomMesage'));
     };
 
     function getRandomArbitrary(min, max) {
@@ -98,7 +104,6 @@ module.exports = function (db) {
         getPushState,
         getRandomImage,
         getRandomFact,
-        getCustomMesage,
         getNewestFact,
         getNewestImage,
         getSubscriptionsFromDatabase,

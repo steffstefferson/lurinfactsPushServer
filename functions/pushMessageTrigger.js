@@ -7,27 +7,34 @@ module.exports = function (refFirebase, webpushHelper, utility) {
         randomBool: function () { return +new Date() % 2; }
     };
     var utils = utility || defaultUtils;
-    var webpushLibary = webpushHelper;
 
-    const isTimeToRun = function (pushState) {
-        //define min time diffrence between push message.
-        minTimeDiffSeconds = pushState && pushState.pushEveryXHours * 3600 || 3600 * 24;
-
+    const isTimeToRun = function (pushState, checkIsTimeToRun) {
         if (!pushState || !pushState.lastPushMessage) {
-            return false;
+            return { isTimeToRun: false };
         }
 
-        if ((new Date().getTime() - pushState.lastPushMessage) / 1000 > minTimeDiffSeconds) {
-            return true;
-        }
-        return false;
+        //define min time diffrence between push message.
+        const minTimeDiffSecondsNewContent = pushState && pushState.pushNewContentEveryXHours * 3600 || 3600 * 24;
+        const minTimeDiffSecondsRandomContent = pushState && pushState.pushRandomContentEveryXDays * 24 * 3600 || 3600 * 24;
+        const minTimeToLurinDay = 3600 * 24;
+
+        var isTime = function (timeDiff) {
+            return (new Date().getTime() - pushState.lastPushMessage) / 1000 > timeDiff;
+        };
+
+        const isTimeToPushNew = !checkIsTimeToRun || isTime(minTimeDiffSecondsNewContent);
+        const isTimeToPushRandom = !checkIsTimeToRun || isTime(minTimeDiffSecondsRandomContent);
+        const isTimeToLurinDay = isTime(minTimeToLurinDay);
+
+        var isTimeToRun = isTimeToPushNew || isTimeToPushRandom || isTimeToLurinDay;
+        return { isTimeToRun, isTimeToPushRandom, isTimeToPushNew, isTimeToLurinDay };
     };
 
     const getNewContentToPush = function (pushState) {
         return firebase.getNewestFact(pushState.lastFactDate).then(function (fact) {
             if (fact) {
                 return {
-                    pushMessage: createPushMsg('newfact', 'New wisdom about lurin', fact.fact + ' | by ' + fact.contributor,null,fact.itemKey),
+                    pushMessage: createPushMsg('newfact', 'New wisdom about lurin', fact.fact + ' | by ' + fact.contributor, null, fact.itemKey),
                     updateFn: function (state) {
                         state.lastFactDate = fact.insertTime;
                         return state;
@@ -37,7 +44,7 @@ module.exports = function (refFirebase, webpushHelper, utility) {
             return firebase.getNewestImage(pushState.lastImageDate).then(function (image) {
                 if (image) {
                     return {
-                        pushMessage: createPushMsg('newimage', 'Lurin is on another trip!', image.imageTitle + '\n ' + image.funFact,null,image.imageKey),
+                        pushMessage: createPushMsg('newimage', 'Lurin is on another trip!', image.imageTitle + '\n ' + image.funFact, null, image.imageKey),
                         updateFn: function (state) {
                             state.lastImageDate = image.insertTime;
                             return state;
@@ -54,7 +61,7 @@ module.exports = function (refFirebase, webpushHelper, utility) {
             return firebase.getRandomImage().then(function (image) {
                 if (image) {
                     return {
-                        pushMessage: createPushMsg('randomimage', 'Have you already be in?', image.imageTitle + '\n ' + image.funFact, null,image.imageKey),
+                        pushMessage: createPushMsg('randomimage', 'Have you already been in?', image.imageTitle + '\n ' + image.funFact, null, image.imageKey),
                         updateFn: function (state) {
                             state.randomImage = state.randomImage || [];
                             state.randomImage.push(image.imageKey);
@@ -68,7 +75,7 @@ module.exports = function (refFirebase, webpushHelper, utility) {
         return firebase.getRandomFact().then(function (fact) {
             if (fact) {
                 return {
-                    pushMessage: createPushMsg('randomfact', 'Did you know?', fact.fact + ' | by ' + fact.contributor,null,fact.itemKey),
+                    pushMessage: createPushMsg('randomfact', 'Did you know?', fact.fact + ' | by ' + fact.contributor, null, fact.itemKey),
                     updateFn: function (state) {
                         state.randomFact = state.randomFact || [];
                         state.randomFact.push(fact.itemKey);
@@ -81,24 +88,22 @@ module.exports = function (refFirebase, webpushHelper, utility) {
 
     };
 
-    const createPushMsg = function (type, title, message, imageLink,itemKey) {
-        return { title, message, type, imageLink,itemKey };
+    const createPushMsg = function (type, title, message, imageLink, itemKey) {
+        return { title, message, type, imageLink, itemKey };
     }
 
-    const getCustomMessage = function () {
-        return firebase.getCustomMesage().then(function (msg) {
-            if (!msg) return null;
-            return { pushMessage: createPushMsg('custom', 'Lurin has a message for you.', msg) };
-        });
-    };
-
-    const pushSomeContentInternal = function (pushState) {
-        if (utils.isLurinday()) {
+    const pushSomeContentInternal = function (pushState, timeToRunResult) {
+        if (timeToRunResult.isTimeToLurinDay && utils.isLurinday()) {
             var msg = { pushMessage: createPushMsg('lurinday', 'Happy lurinday everyone', 'have a nice day!') };
             return webpushHelper.pushContent(msg);
         }
 
-        return getAnyContent(pushState).then(function (content) {
+        return getNewContentToPush(pushState).then(function (content) {
+            if (!timeToRunResult.isTimeToPushNew || !content) {
+                return timeToRunResult.isTimeToPushRandom && getRandomContentToPush(pushState);
+            }
+            return content;
+        }).then(function (content) {
             if (content) {
                 console.log('gotAnyContent to push: ' + content.pushMessage.type + ' title : ' + content.pushMessage.title);
                 return webpushHelper.pushContent(content.pushMessage).then(function (subscriptions) {
@@ -110,20 +115,6 @@ module.exports = function (refFirebase, webpushHelper, utility) {
         });
     };
 
-    const getAnyContent = function (pushState) {
-        return getCustomMessage().then(function (content) {
-            if (!content) {
-                return getNewContentToPush(pushState).then(function (content) {
-                    if (!content) {
-                        return getRandomContentToPush(pushState);
-                    }
-                    return content;
-                });
-            }
-            return content;
-        });
-    };
-
     const pushSomeContent = function (skipTimeCheckKey) {
 
         return firebase.getPushState().then(function (pushState) {
@@ -131,17 +122,17 @@ module.exports = function (refFirebase, webpushHelper, utility) {
             if (!pushState || !pushState.lastPushMessage) {
                 return Promise.resolve({ result: 'nopushstate' });
             }
-            skipTimeCheckKey && console.log('skipTimeCheckKey: '+skipTimeCheckKey);
+            skipTimeCheckKey && console.log('skipTimeCheckKey: ' + skipTimeCheckKey);
             var checkTimeToRun = !(pushState.skipTimeCheckKey && skipTimeCheckKey == pushState.skipTimeCheckKey);
-
-            if (checkTimeToRun && !isTimeToRun(pushState)) {
+            var timeToRunResult = isTimeToRun(pushState, checkTimeToRun);
+            if (!timeToRunResult.isTimeToRun) {
                 return Promise.resolve({ result: 'nottimetorun' });
             };
             console.log('its time to push something');
 
             pushState.lastPushMessage = +new Date();
             return firebase.updatePushState(pushState).then(function () {
-                return pushSomeContentInternal(pushState).then(function (result) {
+                return pushSomeContentInternal(pushState, timeToRunResult).then(function (result) {
                     const content = result.content;
                     if (content) {
                         var newPushState = content.updateFn ? content.updateFn(pushState) : pushState;
@@ -155,10 +146,15 @@ module.exports = function (refFirebase, webpushHelper, utility) {
         });
     };
 
-    const pushMessage = function (msg) {
-        var msg = { pushMessage: { type: 'custom', data: msg } };
+    const pushMessage = function (title, message, receiver) {
+        var msg = createPushMsg('custom', title, message);
         return webpushHelper.pushContent(msg);
     };
 
-    return { isTimeToRun, getNewContentToPush, pushSomeContent, pushMessage };
+    const pushMessageTo = function (title, message, receiver) {
+        var msg = createPushMsg('custom', title, message);
+        return webpushHelper.pushContentTo(msg, receiver);
+    };
+
+    return { isTimeToRun, getNewContentToPush, pushSomeContent, pushMessage, pushMessageTo };
 };

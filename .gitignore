@@ -2,6 +2,6 @@ node_modules/
 functions/node_modules/
 .vscode/
 firebase-debug.log
-testserver/settings.json
-functions/settings.json
 .firebaserc
+functions/settings.json
+testserver/settings.json

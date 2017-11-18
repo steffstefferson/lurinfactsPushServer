@@ -13,9 +13,10 @@ adminOnFire.initializeApp({
 
 const db = adminOnFire.database();
 
-const firebaseLibrary = require("./../logic/firebaseLibrary.js")(db);
-const pushHelper = require("./../logic/pushHelper.js")(firebaseLibrary, settings.isPushMocked ? null : require('web-push'));
-const pushMessageTrigger = require("./../logic/pushMessageTrigger.js")(firebaseLibrary, pushHelper);
+const firebaseLibrary = require("./../functions/firebaseLibrary.js")(db);
+const pushHelper = require("./../functions/pushHelper.js")(firebaseLibrary, settings.isPushMocked ? null : require('web-push'));
+const pushMessageTrigger = require("./../functions/pushMessageTrigger.js")(firebaseLibrary, pushHelper);
+const urlRegisterer = require("./../functions/urlRegisterer.js")(pushMessageTrigger, firebaseLibrary);
 
 pushHelper.setVapidDetails(
     'mailto:info.stef.kaeser@gmail.com',
@@ -23,21 +24,31 @@ pushHelper.setVapidDetails(
     settings.vapidKeys.privateKey
 );
 
-var urlRegisterFn = {
+app.get('/sayHelloDefault', (req, res) => {
+    res.send('Hello World! ' + req.body);
+});
 
-    registerOptions: function (url, fn) {
-        app.options(url, fn);
-    },
-    registerPost: function (url, fn) {
-        app.post(url, fn);
-    },
-    registerGet: function (url, fn) {
-        app.get(url, fn);
-    }
-};
+app.get('/sayHello', (req, res) => {
+    return urlRegisterer.sayHello(req, res);
+});
 
-const urlRegisterer = require("./../logic/urlRegisterer.js")(urlRegisterFn,cors());
-urlRegisterer.registerAllUrls();
+app.post('/unregisterPush', (req, res) => {
+        return urlRegisterer.unregisterPush(req, res);
+});
+
+app.post('/registerPush', (req, res) => {
+        return urlRegisterer.registerPush(req, res);
+});
+
+app.post('/pushMessage', (req, res) => {
+    return urlRegisterer.pushMessage(req, res);
+});
+
+app.post('/pushContent', (req, res) => {
+    return urlRegisterer.pushContent(req, res);
+});
+
+
 
 app.listen(7070, function () {
     console.log('Example app listening on port 7070!')

@@ -2,7 +2,7 @@
   "name": "lurinspushserver",
   "version": "1.0.0",
   "description": "lurins pushserver",
-  "main": "index.js",
+  "main": "testserver/index.js",
   "scripts": {
     "test": "mocha **/spec/*.js --inspect-brk",
     "babel": "babel logic -d functions"
