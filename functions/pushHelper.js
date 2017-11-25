@@ -32,13 +32,14 @@ module.exports = function (refFirebase, webPush) {
 
     const triggerPushMsg = function (subscription, dataToSend) {
         return webpushLibary.sendNotification(subscription, JSON.stringify(dataToSend)).then(function () {
-            console.log('sendNotification successful for p256dh: ' + subscription.keys.p256dh);
+            console.log('sendNotification successful for p256dh: ' + subscription.keys.p256dh + ' data: ',dataToSend);
             return subscription;
         }).catch(err => {
-            if (err.statusCode === 410) {
+            if (err.statusCode === 410 || err.errno == 'ENOTFOUND') {
+                console.log('Subscription is no longer valid and will be deleted', subscription);
                 return firebase.deleteSubscriptionFromDatabase(subscription);
             } else {
-                console.log('Subscription is no longer valid: ' + subscription, err);
+                console.log('Unhandled error sendNotification while sending to: ' + subscription.keys.p256dh, err);
             }
         });
     };
