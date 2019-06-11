@@ -196,8 +196,8 @@ module.exports = function(refFirebase, webpushHelper, utility) {
           function(result) {
             const pushMessage = result.content && result.content.pushMessage;
             if (pushMessage) {
-              var newPushState = pushMessage.updateFn
-                ? pushMessage.updateFn(pushState)
+              var newPushState = result.content.updateFn
+                ? result.content.updateFn(pushState)
                 : pushState;
               return firebase
                 .updatePushState(newPushState)

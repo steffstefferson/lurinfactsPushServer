@@ -68,21 +68,32 @@ describe("#SomeContentToPush", function() {
   });
 
   it("should push new fact content", async function() {
+    var beforeNow = new Date() - 4;
+    var now = new Date();
     firebase.getNewestFact = function(d) {
-      return Promise.resolve({ insertTime: new Date(), fact: "blabla" });
+      return Promise.resolve({ insertTime: beforeNow, fact: "blabla" });
     };
     var a = await triggerLogic.pushSomeContent(false);
     assert.equal(msgs.length, 1);
     assert.equal(msgs[0].type, "newfact");
+    assert.equal(pushStates[0].lastFactDate == beforeNow, true);
+    assert.equal(pushStates[1].lastPushMessage >= now, true);
   });
 
   it("should push new image content", async function() {
+    var beforeNow = new Date() - 4;
+    var now = new Date();
     firebase.getNewestImage = function(d) {
-      return Promise.resolve({ insertTime: new Date(), imageTitle: "blabla" });
+      return Promise.resolve({
+        insertTime: beforeNow,
+        imageTitle: "blabla"
+      });
     };
     var a = await triggerLogic.pushSomeContent(false);
     assert.equal(msgs.length, 1);
     assert.equal(msgs[0].type, "newimage");
+    assert.equal(pushStates[0].lastImageDate == beforeNow, true);
+    assert.equal(pushStates[1].lastPushMessage >= now, true);
   });
 
   it("should be lurin day", async function() {

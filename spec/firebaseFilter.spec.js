@@ -23,6 +23,19 @@ describe("#firebaseLibrary", function() {
     assert.equal(result, null);
   });
 
+  it("should return only once", function() {
+    var arr = [];
+    arr.push({ insertDateTime: 1560278403189, id: 0 });
+    var result = fb._testOnly.getNewest(arr, 1560278403188, "insertDateTime");
+    assert.notEqual(result, null);
+    var result = fb._testOnly.getNewest(
+      arr,
+      result.insertDateTime,
+      "insertDateTime"
+    );
+    assert.equal(result, null);
+  });
+
   it("it should return the older", function() {
     var arr = [];
     var element = { insertDateTime: new Date(), id: 0 };

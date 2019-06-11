@@ -31,14 +31,14 @@ var helper = {
       });
     };
   },
-  provideFact: function(inserTimeOfFact) {
+  provideFact: function(insertTimeOfFact) {
     return function(t) {
       if (t > new Date()) {
         return Promise.resolve(null);
       }
       return Promise.resolve({
         fact: "imafact",
-        insertTime: inserTimeOfFact || new Date()
+        insertTime: insertTimeOfFact || new Date()
       });
     };
   }
